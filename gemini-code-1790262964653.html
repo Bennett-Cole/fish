@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>American Angler: Master Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for crisp aquatic icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            background-color: #0b1329;
+            color: #f1f5f9;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* Shimmer & Glow Animations */
+        @keyframes trophyGlow {
+            0% { box-shadow: 0 0 10px rgba(234, 179, 8, 0.4); border-color: rgba(234, 179, 8, 0.8); }
+            50% { box-shadow: 0 0 25px rgba(234, 179, 8, 0.8); border-color: rgba(250, 204, 21, 1); }
+            100% { box-shadow: 0 0 10px rgba(234, 179, 8, 0.4); border-color: rgba(234, 179, 8, 0.8); }
+        }
+        @keyframes uniqueGlow {
+            0% { box-shadow: 0 0 15px rgba(168, 85, 247, 0.6); border-color: rgba(192, 132, 252, 0.9); }
+            50% { box-shadow: 0 0 35px rgba(6, 182, 212, 0.9); border-color: rgba(34, 211, 238, 1); }
+            100% { box-shadow: 0 0 15px rgba(168, 85, 247, 0.6); border-color: rgba(192, 132, 252, 0.9); }
+        }
+        .tier-trophy-card {
+            animation: trophyGlow 2.5s infinite ease-in-out;
+        }
+        .tier-unique-card {
+            animation: uniqueGlow 2s infinite ease-in-out;
+        }
+        /* Pulse animation for tension warnings */
+        @keyframes redPulse {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.8; }
+        }
+        .animate-danger-pulse {
+            animation: redPulse 0.4s infinite;
+        }
+        /* Canvas container responsiveness */
+        #gameCanvas {
+            touch-action: none;
+            background: linear-gradient(to bottom, #1e293b, #0f172a);
+        }
+        /* Tooltip style */
+        .tooltip {
+            position: relative;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 180px;
+            background-color: #0f172a;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 6px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -90px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            border: 1px solid #334155;
+            font-size: 0.75rem;
+            pointer-events: none;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 antialiased overflow-x-hidden">
+    <!-- TOP HEADER / PLAYER STATS -->
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 px-4 py-3 shadow-lg">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            
+            <!-- Branding -->
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-cyan-600 to-blue-500 p-2.5 rounded-xl shadow-md text-white">
+                    <i class="fa-solid fa-fish-fins text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg md:text-xl tracking-tight bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent">
+                        AMERICAN ANGLER
+                    </h1>
+                    <p class="text-xs text-slate-400 font-medium">Master Edition • 31 Species & 9 Spots</p>
+                </div>
+            </div>
+            <!-- Player Level & XP -->
+            <div class="flex items-center gap-6 bg-slate-950/60 px-4 py-2 rounded-xl border border-slate-800/80">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs uppercase font-bold tracking-wider text-slate-400">Level</span>
+                    <span id="playerLevelDisplay" class="font-black text-cyan-400 text-lg">1</span>
+                </div>
+                <div class="w-32 md:w-48 bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700/50">
+                    <div id="xpProgressBar" class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <span id="xpTextDisplay" class="text-xs text-slate-400 font-mono">0/100 XP</span>
+            </div>
+            <!-- Money & Location Indicator & Audio Switch -->
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 bg-emerald-950/40 border border-emerald-800/60 px-3.5 py-1.5 rounded-xl">
+                    <i class="fa-solid fa-coins text-amber-400 text-sm"></i>
+                    <span id="cashDisplay" class="font-extrabold text-emerald-400 font-mono text-base md:text-lg">$0.00</span>
+                </div>
+                <button id="soundToggleBtn" onclick="toggleAudio()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2.5 rounded-xl text-slate-300 hover:text-white transition">
+                    <i id="soundIcon" class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+    <!-- TAB NAVIGATION BAR -->
+    <nav class="bg-slate-900 border-b border-slate-800 px-4">
+        <div class="max-w-7xl mx-auto flex justify-center md:justify-start gap-2 py-2 overflow-x-auto no-scrollbar">
+            <button onclick="switchTab('fishing')" id="tabBtn-fishing" class="tab-btn active px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 bg-cyan-600 text-white transition">
+                <i class="fa-solid fa-water"></i> Fishing Waters
+            </button>
+            <button onclick="switchTab('locations')" id="tabBtn-locations" class="tab-btn px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-map-location-dot"></i> Travel Spots (<span id="currentLocNameNav">Piney Creek</span>)
+            </button>
+            <button onclick="switchTab('shop')" id="tabBtn-shop" class="tab-btn px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-store"></i> Tackle Shop
+            </button>
+            <button onclick="switchTab('logbook')" id="tabBtn-logbook" class="tab-btn px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-book-bookmark"></i> Fish Logbook
+            </button>
+        </div>
+    </nav>
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 md:p-6">
+        <!-- TAB 1: FISHING WATERS CANVAS VIEW -->
+        <div id="tab-fishing" class="tab-content block">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                
+                <!-- Main Canvas & Action Overlay Area (3 cols) -->
+                <div class="lg:col-span-3 flex flex-col gap-3">
+                    
+                    <!-- Canvas Wrapper -->
+                    <div class="relative rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900">
+                        <canvas id="gameCanvas" class="w-full h-[380px] md:h-[480px] block cursor-crosshair"></canvas>
+                        <!-- Live Action Overlay (Tension Warning / Slack / Jump) -->
+                        <div id="dangerOverlay" class="absolute inset-0 bg-red-600/30 pointer-events-none opacity-0 transition-opacity duration-150 animate-danger-pulse"></div>
+                        <!-- Action Prompts Flashing HUD -->
+                        <div id="hudPromptContainer" class="absolute top-6 left-1/2 -translate-x-1/2 text-center pointer-events-none transition-all duration-200">
+                            <span id="hudPromptText" class="px-5 py-2 rounded-full font-black text-sm md:text-base tracking-wide bg-slate-950/80 border border-slate-700 text-cyan-300 backdrop-blur-md shadow-xl">
+                                CAST YOUR BAIT
+                            </span>
+                        </div>
+                        <!-- Jump Warning Big Indicator -->
+                        <div id="jumpAlert" class="hidden absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none animate-bounce">
+                            <div class="bg-amber-500 text-slate-950 font-black px-6 py-2.5 rounded-2xl shadow-2xl border-2 border-white text-lg tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                                FISH IS JUMPING! RELEASE REEL!
+                            </div>
+                        </div>
+                        <!-- Location Label Canvas Badge -->
+                        <div class="absolute bottom-4 left-4 bg-slate-950/80 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-xl text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-location-dot text-cyan-400"></i>
+                            <span id="canvasLocName" class="font-bold text-slate-200">Piney Creek Pond</span>
+                        </div>
+                        <!-- Fish Distance Meter HUD -->
+                        <div id="distanceHud" class="hidden absolute bottom-4 right-4 bg-slate-950/80 backdrop-blur-md border border-slate-800 px-3.5 py-1.5 rounded-xl text-xs font-mono flex items-center gap-2">
+                            <i class="fa-solid fa-ruler-horizontal text-emerald-400"></i>
+                            <span class="text-slate-400">Distance:</span>
+                            <span id="fishDistanceVal" class="font-bold text-white text-sm">85 ft</span>
+                        </div>
+                    </div>
+                    <!-- REEL & TENSION CONTROL HUD -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col md:flex-row items-center gap-4">
+                        
+                        <!-- Tension Gauge Bar -->
+                        <div class="flex-1 w-full flex flex-col gap-1.5">
+                            <div class="flex justify-between items-center text-xs font-bold text-slate-400 px-1">
+                                <span><i class="fa-solid fa-gauge text-slate-500"></i> LINE TENSION</span>
+                                <span id="tensionPercentText" class="font-mono text-cyan-400">0%</span>
+                            </div>
+                            <!-- Bar Outer -->
+                            <div class="relative w-full h-7 bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-0.5">
+                                <!-- Safe Zone Indicator Box Overlay -->
+                                <div id="safeZoneMarker" class="absolute top-0 bottom-0 bg-emerald-500/20 border-x-2 border-emerald-400 z-10 pointer-events-none transition-all duration-300" style="left: 30%; width: 45%;"></div>
+                                
+                                <!-- Dynamic Inner Tension Bar -->
+                                <div id="tensionInnerBar" class="h-full bg-gradient-to-r from-blue-500 via-emerald-400 via-amber-400 to-red-600 rounded-lg transition-all duration-75" style="width: 0%;"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] text-slate-500 font-mono px-1">
+                                <span>SLACK (0%)</span>
+                                <span class="text-emerald-400 font-bold">SAFE ZONE</span>
+                                <span class="text-red-400 font-bold">SNAP HAZARD (90%+)</span>
+                            </div>
+                        </div>
+                        <!-- Main Interacting Controls -->
+                        <div class="flex items-center gap-3 w-full md:w-auto">
+                            <!-- Cast Button -->
+                            <button id="castBtn" onclick="handleCastButton()" class="flex-1 md:flex-initial bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold px-6 py-3.5 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 min-w-[140px]">
+                                <i class="fa-solid fa-bullseye text-lg"></i>
+                                <span>CAST BAIT</span>
+                            </button>
+                            <!-- Hold Reel Button -->
+                            <button id="reelBtn" onmousedown="startReeling()" onmouseup="stopReeling()" onmouseleave="stopReeling()" ontouchstart="startReeling(event)" ontouchend="stopReeling(event)" class="flex-1 md:flex-initial bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-extrabold px-8 py-3.5 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 select-none min-w-[160px] opacity-60 cursor-not-allowed" disabled>
+                                <i class="fa-solid fa-rotate-right text-lg"></i>
+                                <span>HOLD TO REEL</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- SIDEBAR: EQUIPPED GEAR & BAIT SELECTOR -->
+                <div class="lg:col-span-1 flex flex-col gap-4">
+                    
+                    <!-- Equipped Summary Box -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col gap-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-cyan-400"></i> Equipped Tackle
+                        </h3>
+                        <div class="space-y-2 text-xs">
+                            <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800/80">
+                                <span class="text-slate-400">Rod:</span>
+                                <span id="eqRodName" class="font-bold text-slate-200">Bamboo Pole</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800/80">
+                                <span class="text-slate-400">Reel:</span>
+                                <span id="eqReelName" class="font-bold text-slate-200">Starter Spool</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800/80">
+                                <span class="text-slate-400">Line:</span>
+                                <span id="eqLineName" class="font-bold text-emerald-400">6lb Mono</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Quick Bait Selection -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col gap-3 flex-1">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                            <span><i class="fa-solid fa-worm text-amber-400"></i> Active Bait</span>
+                            <span class="text-[10px] text-cyan-400">Affects bite speed & species</span>
+                        </h3>
+                        <div id="quickBaitList" class="space-y-2 overflow-y-auto max-h-[220px] pr-1">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                    <!-- Instructions Banner -->
+                    <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-3 text-[11px] text-slate-400 space-y-1">
+                        <p class="font-bold text-slate-300"><i class="fa-solid fa-circle-info text-cyan-400"></i> How to Fight Fish:</p>
+                        <p>1. Cast and wait for <span class="text-amber-400 font-bold">"FISH ON!"</span>.</p>
+                        <p>2. Hold <span class="text-emerald-400 font-bold">REEL</span> or <span class="text-emerald-400 font-bold">SPACEBAR</span> to keep tension in the <span class="text-emerald-400 font-bold">GREEN SAFE ZONE</span>.</p>
+                        <p>3. If fish jumps (<i class="fa-solid fa-triangle-exclamation text-amber-400"></i>), <span class="text-red-400 font-bold">RELEASE REEL IMMEDIATELY</span> or line will snap!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- TAB 2: LOCATIONS TRAVEL MAP -->
+        <div id="tab-locations" class="tab-content hidden">
+            <div class="mb-6">
+                <h2 class="text-xl font-extrabold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-map-location-dot text-cyan-400"></i> Iconic North American Waters
+                </h2>
+                <p class="text-sm text-slate-400">Travel to unlocked fishing destinations across the continent to catch giant trophies & unique species!</p>
+            </div>
+            <div id="locationsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+        <!-- TAB 3: TACKLE SHOP -->
+        <div id="tab-shop" class="tab-content hidden">
+            <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-store text-emerald-400"></i> Master Tackle Shop
+                    </h2>
+                    <p class="text-sm text-slate-400">Upgrade your gear to handle heavy monster fish and titanium line tests!</p>
+                </div>
+                <!-- Shop sub-category buttons -->
+                <div class="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
+                    <button onclick="switchShopCategory('rods')" id="shopCatBtn-rods" class="shop-cat-btn active px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 text-white">Rods</button>
+                    <button onclick="switchShopCategory('reels')" id="shopCatBtn-reels" class="shop-cat-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Reels</button>
+                    <button onclick="switchShopCategory('lines')" id="shopCatBtn-lines" class="shop-cat-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Lines</button>
+                    <button onclick="switchShopCategory('baits')" id="shopCatBtn-baits" class="shop-cat-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Baits & Lures</button>
+                </div>
+            </div>
+            <div id="shopItemsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+        <!-- TAB 4: FISH LOGBOOK & TROPHY ROOM -->
+        <div id="tab-logbook" class="tab-content hidden">
+            <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-book-bookmark text-amber-400"></i> Trophy Logbook (<span id="logbookCount">0</span>/31 Caught)
+                    </h2>
+                    <p class="text-sm text-slate-400">View personal bests, length/weight records, and tier badges achieved per species.</p>
+                </div>
+                <!-- Category Filter -->
+                <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                    <button onclick="filterLogbook('ALL', event)" class="log-filter-btn active px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-cyan-400 border border-slate-700">All</button>
+                    <button onclick="filterLogbook('Panfish', event)" class="log-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Panfish</button>
+                    <button onclick="filterLogbook('Bass', event)" class="log-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Bass</button>
+                    <button onclick="filterLogbook('Trout/Salmon', event)" class="log-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Trout/Salmon</button>
+                    <button onclick="filterLogbook('Predators', event)" class="log-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Predators</button>
+                    <button onclick="filterLogbook('Catfish/Bottom', event)" class="log-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Catfish/Bottom</button>
+                </div>
+            </div>
+            <div id="logbookGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+    </main>
+    <!-- MODAL: CATCH RESULT POPUP -->
+    <div id="catchModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl relative flex flex-col items-center text-center transform transition-all scale-95 opacity-0" id="catchModalContent">
+            
+            <!-- Tier Badge Floating Banner -->
+            <div id="modalTierBadge" class="mb-2 px-4 py-1 rounded-full font-black text-xs uppercase tracking-widest bg-slate-800 text-slate-300 border border-slate-700">
+                NORMAL CATCH
+            </div>
+            <h2 id="modalFishName" class="text-2xl font-black text-white mb-1">Largemouth Bass</h2>
+            <p id="modalFishCat" class="text-xs text-slate-400 font-semibold mb-4">Bass Family • Piney Creek Pond</p>
+            <!-- Dynamic Procedural Canvas Fish Visualizer -->
+            <div class="relative w-full h-44 bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden mb-4 flex items-center justify-center p-2">
+                <canvas id="fishPreviewCanvas" width="360" height="160" class="max-w-full max-h-full"></canvas>
+            </div>
+            <!-- Measurements Stats Grid -->
+            <div class="grid grid-cols-2 gap-3 w-full mb-5">
+                <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800/80">
+                    <div class="text-[10px] uppercase font-bold text-slate-500">Length</div>
+                    <div id="modalLengthDisplay" class="font-extrabold text-cyan-400 text-lg">21.5 in <span class="text-xs text-slate-400 font-normal">(54.6 cm)</span></div>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800/80">
+                    <div class="text-[10px] uppercase font-bold text-slate-500">Weight</div>
+                    <div id="modalWeightDisplay" class="font-extrabold text-amber-400 text-lg">5.4 lbs <span class="text-xs text-slate-400 font-normal">(2.4 kg)</span></div>
+                </div>
+            </div>
+            <!-- Earnings Card -->
+            <div class="bg-gradient-to-r from-emerald-950/60 to-teal-950/60 border border-emerald-800/50 rounded-2xl p-3 w-full mb-6 flex justify-around items-center">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-coins text-amber-400 text-lg"></i>
+                    <div class="text-left">
+                        <div class="text-[10px] text-slate-400 uppercase font-bold">Earned Cash</div>
+                        <div id="modalCashEarned" class="font-black text-emerald-400 text-lg font-mono">+$42.50</div>
+                    </div>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-bolt text-cyan-400 text-lg"></i>
+                    <div class="text-left">
+                        <div class="text-[10px] text-slate-400 uppercase font-bold">XP Gain</div>
+                        <div id="modalXpEarned" class="font-black text-cyan-400 text-lg font-mono">+35 XP</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Action Buttons -->
+            <div class="flex gap-3 w-full">
+                <button onclick="keepCatch(true)" class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold py-3 rounded-xl shadow-lg transition active:scale-95 text-sm">
+                    Keep Fish & Sell
+                </button>
+                <button onclick="keepCatch(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-3 rounded-xl transition text-xs border border-slate-700">
+                    Release (+50% XP)
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- MODAL: FISH ESCAPED / LINE BROKE -->
+    <div id="escapeModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-red-900/60 rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-red-950/80 border border-red-700 rounded-full flex items-center justify-center mx-auto mb-3 text-red-400 text-2xl">
+                <i class="fa-solid fa-link-slash"></i>
+            </div>
+            <h3 id="escapeTitle" class="text-xl font-black text-white mb-2">Line Snapped!</h3>
+            <p id="escapeReason" class="text-xs text-slate-400 mb-6">Tension exceeded line safety capacity for too long! Upgrade your line in the shop for larger monsters.</p>
+            <button onclick="closeEscapeModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-extrabold py-3 rounded-xl transition text-sm border border-slate-700">
+                Try Again
+            </button>
+        </div>
+    </div>
+    <script>
+        // ==========================================
+        // GAME DATA DEFINITIONS
+        // ==========================================
+        const LOCATIONS = [
+            {
+                id: 'piney_creek',
+                name: 'Piney Creek Pond',
+                tagline: 'Starter Pond • Calm Waters',
+                levelReq: 1,
+                travelCost: 0,
+                skyColor: ['#1e293b', '#0f172a'],
+                waterColor: 'rgba(16, 185, 129, 0.4)',
+                foliageColor: '#15803d',
+                species: ['bluegill', 'pumpkinseed', 'green_sunfish', 'black_crappie', 'largemouth_bass', 'channel_catfish']
+            },
+            {
+                id: 'lake_okeechobee',
+                name: 'Lake Okeechobee, Florida',
+                tagline: 'Subtropical Marshes & Cypress',
+                levelReq: 3,
+                travelCost: 150,
+                skyColor: ['#0f172a', '#1e1b4b'],
+                waterColor: 'rgba(20, 184, 166, 0.45)',
+                foliageColor: '#047857',
+                species: ['largemouth_bass', 'peacock_bass', 'bluegill', 'bowfin', 'black_crappie', 'alligator_gar', 'blue_catfish']
+            },
+            {
+                id: 'boundary_waters',
+                name: 'Boundary Waters Wilderness, MN',
+                tagline: 'Crystal Clear Pine Lake',
+                levelReq: 5,
+                travelCost: 400,
+                skyColor: ['#091e3a', '#2f80ed'],
+                waterColor: 'rgba(14, 165, 233, 0.35)',
+                foliageColor: '#065f46',
+                species: ['northern_pike', 'walleye', 'smallmouth_bass', 'yellow_perch', 'lake_trout', 'muskellunge']
+            },
+            {
+                id: 'appalachian_stream',
+                name: 'Appalachian Stream, NC',
+                tagline: 'Fast Mountain Streams & Granite',
+                levelReq: 8,
+                travelCost: 800,
+                skyColor: ['#18181b', '#27272a'],
+                waterColor: 'rgba(6, 182, 212, 0.3)',
+                foliageColor: '#b45309',
+                species: ['brook_trout', 'rainbow_trout', 'brown_trout', 'cutthroat_trout', 'smallmouth_bass']
+            },
+            {
+                id: 'lake_st_clair',
+                name: 'Lake St. Clair, Michigan',
+                tagline: 'Weed Flats & Muskie Haven',
+                levelReq: 12,
+                travelCost: 1500,
+                skyColor: ['#0284c7', '#0f172a'],
+                waterColor: 'rgba(2, 132, 199, 0.4)',
+                foliageColor: '#16a34a',
+                species: ['muskellunge', 'tiger_muskie', 'smallmouth_bass', 'walleye', 'yellow_perch', 'white_crappie']
+            },
+            {
+                id: 'columbia_gorge',
+                name: 'Columbia River Gorge, WA',
+                tagline: 'Deep Basalt Canyons & Big Current',
+                levelReq: 16,
+                travelCost: 3000,
+                skyColor: ['#1e1b4b', '#312e81'],
+                waterColor: 'rgba(16, 185, 129, 0.35)',
+                foliageColor: '#1e3a8a',
+                species: ['white_sturgeon', 'chinook_salmon', 'coho_salmon', 'rainbow_trout', 'smallmouth_bass', 'walleye']
+            },
+            {
+                id: 'mississippi_delta',
+                name: 'Mississippi River Delta, LA',
+                tagline: 'Deep Murky Bayou Waters',
+                levelReq: 20,
+                travelCost: 5000,
+                skyColor: ['#451a03', '#1c1917'],
+                waterColor: 'rgba(180, 83, 9, 0.45)',
+                foliageColor: '#3f6212',
+                species: ['alligator_gar', 'blue_catfish', 'flathead_catfish', 'striped_bass', 'bowfin', 'paddlefish', 'common_carp']
+            },
+            {
+                id: 'lake_guntersville',
+                name: 'Lake Guntersville, Alabama',
+                tagline: 'Grass Mats & Giant Trophy Bass',
+                levelReq: 25,
+                travelCost: 8000,
+                skyColor: ['#312e81', '#1e293b'],
+                waterColor: 'rgba(13, 148, 136, 0.4)',
+                foliageColor: '#15803d',
+                species: ['largemouth_bass', 'spotted_bass', 'striped_bass', 'black_crappie', 'channel_catfish', 'blue_catfish']
+            },
+            {
+                id: 'red_river_north',
+                name: 'Red River of the North, ND',
+                tagline: 'Northern Waters & River Monsters',
+                levelReq: 30,
+                travelCost: 12000,
+                skyColor: ['#0f172a', '#1e293b'],
+                waterColor: 'rgba(71, 85, 105, 0.5)',
+                foliageColor: '#334155',
+                species: ['channel_catfish', 'white_sturgeon', 'northern_pike', 'walleye', 'common_carp', 'paddlefish']
+            }
+        ];
+        const SPECIES_DATABASE = {
+            // PANFISH
+            bluegill: {
+                id: 'bluegill', name: 'Bluegill', category: 'Panfish',
+                minLen: 5, maxLen: 12, minW: 0.3, maxW: 2.2, baseVal: 3.5, xpPerLb: 15,
+                pullPower: 12, stamina: 25, bodyType: 'panfish',
+                colorBody: '#3b82f6', colorBelly: '#f59e0b', spots: '#1e3a8a',
+                favBaits: ['worm', 'bread']
+            },
+            pumpkinseed: {
+                id: 'pumpkinseed', name: 'Pumpkinseed Sunfish', category: 'Panfish',
+                minLen: 4, maxLen: 10, minW: 0.2, maxW: 1.2, baseVal: 3.8, xpPerLb: 18,
+                pullPower: 10, stamina: 20, bodyType: 'panfish',
+                colorBody: '#10b981', colorBelly: '#fb923c', spots: '#3b82f6',
+                favBaits: ['worm', 'bread']
+            },
+            black_crappie: {
+                id: 'black_crappie', name: 'Black Crappie', category: 'Panfish',
+                minLen: 7, maxLen: 16, minW: 0.5, maxW: 4.5, baseVal: 4.5, xpPerLb: 22,
+                pullPower: 18, stamina: 30, bodyType: 'panfish',
+                colorBody: '#94a3b8', colorBelly: '#f8fafc', spots: '#1e293b',
+                favBaits: ['minnow', 'worm']
+            },
+            white_crappie: {
+                id: 'white_crappie', name: 'White Crappie', category: 'Panfish',
+                minLen: 6, maxLen: 15, minW: 0.4, maxW: 3.8, baseVal: 4.2, xpPerLb: 20,
+                pullPower: 16, stamina: 28, bodyType: 'panfish',
+                colorBody: '#cbd5e1', colorBelly: '#ffffff', spots: '#475569',
+                favBaits: ['minnow', 'worm']
+            },
+            yellow_perch: {
+                id: 'yellow_perch', name: 'Yellow Perch', category: 'Panfish',
+                minLen: 6, maxLen: 14, minW: 0.3, maxW: 2.5, baseVal: 4.0, xpPerLb: 20,
+                pullPower: 14, stamina: 26, bodyType: 'bass',
+                colorBody: '#eab308', colorBelly: '#fef08a', spots: '#15803d',
+                favBaits: ['minnow', 'worm']
+            },
+            green_sunfish: {
+                id: 'green_sunfish', name: 'Green Sunfish', category: 'Panfish',
+                minLen: 4, maxLen: 10, minW: 0.2, maxW: 1.3, baseVal: 3.2, xpPerLb: 16,
+                pullPower: 11, stamina: 22, bodyType: 'panfish',
+                colorBody: '#16a34a', colorBelly: '#fbbf24', spots: '#065f46',
+                favBaits: ['worm', 'bread']
+            },
+            // BASS
+            largemouth_bass: {
+                id: 'largemouth_bass', name: 'Largemouth Bass', category: 'Bass',
+                minLen: 12, maxLen: 28, minW: 1.5, maxW: 18.0, baseVal: 6.5, xpPerLb: 35,
+                pullPower: 35, stamina: 55, bodyType: 'bass',
+                colorBody: '#15803d', colorBelly: '#fef08a', spots: '#064e3b',
+                favBaits: ['crankbait', 'frog', 'minnow', 'spinnerbait']
+            },
+            smallmouth_bass: {
+                id: 'smallmouth_bass', name: 'Smallmouth Bass', category: 'Bass',
+                minLen: 10, maxLen: 23, minW: 1.0, maxW: 9.5, baseVal: 7.0, xpPerLb: 38,
+                pullPower: 38, stamina: 65, bodyType: 'bass',
+                colorBody: '#b45309', colorBelly: '#fef3c7', spots: '#78350f',
+                favBaits: ['spinnerbait', 'crankbait', 'minnow']
+            },
+            spotted_bass: {
+                id: 'spotted_bass', name: 'Spotted Bass', category: 'Bass',
+                minLen: 10, maxLen: 22, minW: 1.0, maxW: 8.5, baseVal: 6.0, xpPerLb: 32,
+                pullPower: 32, stamina: 50, bodyType: 'bass',
+                colorBody: '#047857', colorBelly: '#ecfdf5', spots: '#064e3b',
+                favBaits: ['minnow', 'worm', 'spinnerbait']
+            },
+            peacock_bass: {
+                id: 'peacock_bass', name: 'Peacock Bass', category: 'Bass',
+                minLen: 12, maxLen: 26, minW: 2.0, maxW: 15.0, baseVal: 8.5, xpPerLb: 45,
+                pullPower: 48, stamina: 70, bodyType: 'bass',
+                colorBody: '#eab308', colorBelly: '#ef4444', spots: '#1e293b',
+                favBaits: ['topwater_frog', 'crankbait', 'minnow']
+            },
+            striped_bass: {
+                id: 'striped_bass', name: 'Striped Bass', category: 'Bass',
+                minLen: 18, maxLen: 42, minW: 4.0, maxW: 45.0, baseVal: 9.0, xpPerLb: 50,
+                pullPower: 65, stamina: 85, bodyType: 'trout',
+                colorBody: '#64748b', colorBelly: '#f8fafc', spots: '#0f172a',
+                favBaits: ['swimbait', 'crankbait', 'cutbait']
+            },
+            // TROUT & SALMON
+            rainbow_trout: {
+                id: 'rainbow_trout', name: 'Rainbow Trout', category: 'Trout/Salmon',
+                minLen: 10, maxLen: 28, minW: 1.0, maxW: 15.0, baseVal: 7.5, xpPerLb: 40,
+                pullPower: 32, stamina: 60, bodyType: 'trout',
+                colorBody: '#10b981', colorBelly: '#f43f5e', spots: '#0f172a',
+                favBaits: ['worm', 'spinnerbait']
+            },
+            brown_trout: {
+                id: 'brown_trout', name: 'Brown Trout', category: 'Trout/Salmon',
+                minLen: 10, maxLen: 30, minW: 1.2, maxW: 20.0, baseVal: 8.0, xpPerLb: 42,
+                pullPower: 36, stamina: 62, bodyType: 'trout',
+                colorBody: '#d97706', colorBelly: '#fef3c7', spots: '#ef4444',
+                favBaits: ['minnow', 'worm', 'spinnerbait']
+            },
+            brook_trout: {
+                id: 'brook_trout', name: 'Brook Trout', category: 'Trout/Salmon',
+                minLen: 8, maxLen: 20, minW: 0.8, maxW: 7.0, baseVal: 8.5, xpPerLb: 45,
+                pullPower: 28, stamina: 50, bodyType: 'trout',
+                colorBody: '#047857', colorBelly: '#f97316', spots: '#fef08a',
+                favBaits: ['worm', 'spinnerbait']
+            },
+            cutthroat_trout: {
+                id: 'cutthroat_trout', name: 'Cutthroat Trout', category: 'Trout/Salmon',
+                minLen: 9, maxLen: 22, minW: 0.8, maxW: 9.0, baseVal: 8.2, xpPerLb: 44,
+                pullPower: 30, stamina: 52, bodyType: 'trout',
+                colorBody: '#65a30d', colorBelly: '#dc2626', spots: '#1e293b',
+                favBaits: ['worm', 'minnow']
+            },
+            chinook_salmon: {
+                id: 'chinook_salmon', name: 'Chinook (King) Salmon', category: 'Trout/Salmon',
+                minLen: 24, maxLen: 48, minW: 8.0, maxW: 60.0, baseVal: 10.5, xpPerLb: 60,
+                pullPower: 78, stamina: 95, bodyType: 'trout',
+                colorBody: '#475569', colorBelly: '#e2e8f0', spots: '#0f172a',
+                favBaits: ['cutbait', 'swimbait', 'spinnerbait']
+            },
+            coho_salmon: {
+                id: 'coho_salmon', name: 'Coho Salmon', category: 'Trout/Salmon',
+                minLen: 20, maxLen: 38, minW: 5.0, maxW: 30.0, baseVal: 9.5, xpPerLb: 55,
+                pullPower: 68, stamina: 85, bodyType: 'trout',
+                colorBody: '#0284c7', colorBelly: '#f8fafc', spots: '#0369a1',
+                favBaits: ['spinnerbait', 'crankbait', 'minnow']
+            },
+            lake_trout: {
+                id: 'lake_trout', name: 'Lake Trout', category: 'Trout/Salmon',
+                minLen: 18, maxLen: 40, minW: 4.0, maxW: 40.0, baseVal: 9.0, xpPerLb: 50,
+                pullPower: 60, stamina: 80, bodyType: 'trout',
+                colorBody: '#334155', colorBelly: '#f1f5f9', spots: '#94a3b8',
+                favBaits: ['minnow', 'swimbait', 'cutbait']
+            },
+            // PREDATORS
+            northern_pike: {
+                id: 'northern_pike', name: 'Northern Pike', category: 'Predators',
+                minLen: 20, maxLen: 46, minW: 3.0, maxW: 32.0, baseVal: 8.5, xpPerLb: 48,
+                pullPower: 62, stamina: 75, bodyType: 'pike',
+                colorBody: '#15803d', colorBelly: '#fef08a', spots: '#ecfdf5',
+                favBaits: ['swimbait', 'crankbait', 'minnow']
+            },
+            muskellunge: {
+                id: 'muskellunge', name: 'Muskellunge (Muskie)', category: 'Predators',
+                minLen: 28, maxLen: 56, minW: 6.0, maxW: 50.0, baseVal: 12.0, xpPerLb: 70,
+                pullPower: 85, stamina: 110, bodyType: 'pike',
+                colorBody: '#65a30d', colorBelly: '#f8fafc', spots: '#365314',
+                favBaits: ['swimbait', 'topwater_frog', 'crankbait']
+            },
+            tiger_muskie: {
+                id: 'tiger_muskie', name: 'Tiger Muskie Hybrid', category: 'Predators',
+                minLen: 26, maxLen: 50, minW: 5.0, maxW: 38.0, baseVal: 13.5, xpPerLb: 75,
+                pullPower: 82, stamina: 105, bodyType: 'pike',
+                colorBody: '#ca8a04', colorBelly: '#fef08a', spots: '#451a03',
+                favBaits: ['swimbait', 'crankbait', 'topwater_frog']
+            },
+            walleye: {
+                id: 'walleye', name: 'Walleye', category: 'Predators',
+                minLen: 14, maxLen: 32, minW: 1.5, maxW: 15.0, baseVal: 8.0, xpPerLb: 42,
+                pullPower: 40, stamina: 55, bodyType: 'bass',
+                colorBody: '#854d0e', colorBelly: '#fef9c3', spots: '#a16207',
+                favBaits: ['minnow', 'jighead', 'worm']
+            },
+            longnose_gar: {
+                id: 'longnose_gar', name: 'Longnose Gar', category: 'Predators',
+                minLen: 24, maxLen: 60, minW: 3.0, maxW: 35.0, baseVal: 9.0, xpPerLb: 50,
+                pullPower: 58, stamina: 85, bodyType: 'gar',
+                colorBody: '#78350f', colorBelly: '#fef3c7', spots: '#451a03',
+                favBaits: ['cutbait', 'minnow']
+            },
+            alligator_gar: {
+                id: 'alligator_gar', name: 'Alligator Gar', category: 'Predators',
+                minLen: 36, maxLen: 96, minW: 20.0, maxW: 220.0, baseVal: 15.0, xpPerLb: 90,
+                pullPower: 115, stamina: 160, bodyType: 'gar',
+                colorBody: '#27272a', colorBelly: '#e4e4e7', spots: '#09090b',
+                favBaits: ['cutbait', 'swimbait']
+            },
+            // CATFISH & BOTTOM
+            channel_catfish: {
+                id: 'channel_catfish', name: 'Channel Catfish', category: 'Catfish/Bottom',
+                minLen: 12, maxLen: 32, minW: 2.0, maxW: 28.0, baseVal: 5.5, xpPerLb: 30,
+                pullPower: 45, stamina: 70, bodyType: 'catfish',
+                colorBody: '#475569', colorBelly: '#f8fafc', spots: '#1e293b',
+                favBaits: ['cutbait', 'worm', 'bread']
+            },
+            blue_catfish: {
+                id: 'blue_catfish', name: 'Blue Catfish', category: 'Catfish/Bottom',
+                minLen: 18, maxLen: 50, minW: 5.0, maxW: 85.0, baseVal: 7.5, xpPerLb: 45,
+                pullPower: 80, stamina: 120, bodyType: 'catfish',
+                colorBody: '#0284c7', colorBelly: '#f0f9ff', spots: '#075985',
+                favBaits: ['cutbait', 'minnow']
+            },
+            flathead_catfish: {
+                id: 'flathead_catfish', name: 'Flathead Catfish', category: 'Catfish/Bottom',
+                minLen: 16, maxLen: 48, minW: 4.0, maxW: 70.0, baseVal: 8.0, xpPerLb: 48,
+                pullPower: 88, stamina: 130, bodyType: 'catfish',
+                colorBody: '#a16207', colorBelly: '#fef9c3', spots: '#713f12',
+                favBaits: ['cutbait', 'minnow']
+            },
+            common_carp: {
+                id: 'common_carp', name: 'Common Carp', category: 'Catfish/Bottom',
+                minLen: 14, maxLen: 36, minW: 3.0, maxW: 40.0, baseVal: 4.5, xpPerLb: 25,
+                pullPower: 52, stamina: 80, bodyType: 'bass',
+                colorBody: '#d97706', colorBelly: '#fef3c7', spots: '#b45309',
+                favBaits: ['bread', 'worm']
+            },
+            white_sturgeon: {
+                id: 'white_sturgeon', name: 'White Sturgeon', category: 'Catfish/Bottom',
+                minLen: 40, maxLen: 120, minW: 30.0, maxW: 400.0, baseVal: 18.0, xpPerLb: 110,
+                pullPower: 140, stamina: 200, bodyType: 'sturgeon',
+                colorBody: '#334155', colorBelly: '#f8fafc', spots: '#0f172a',
+                favBaits: ['cutbait', 'worm']
+            },
+            paddlefish: {
+                id: 'paddlefish', name: 'American Paddlefish', category: 'Catfish/Bottom',
+                minLen: 30, maxLen: 72, minW: 15.0, maxW: 110.0, baseVal: 14.0, xpPerLb: 85,
+                pullPower: 95, stamina: 140, bodyType: 'paddlefish',
+                colorBody: '#64748b', colorBelly: '#f1f5f9', spots: '#334155',
+                favBaits: ['worm', 'cutbait']
+            },
+            bowfin: {
+                id: 'bowfin', name: 'Bowfin (Dogfish)', category: 'Catfish/Bottom',
+                minLen: 16, maxLen: 32, minW: 3.0, maxW: 18.0, baseVal: 6.0, xpPerLb: 35,
+                pullPower: 50, stamina: 75, bodyType: 'bass',
+                colorBody: '#3f6212', colorBelly: '#ecfdf5', spots: '#1a2e05',
+                favBaits: ['cutbait', 'minnow', 'worm']
+            }
+        };
+        const SHOP_ITEMS = {
+            rods: [
+                { id: 'rod_bamboo', name: 'Bamboo Starter Pole', cost: 0, power: 1.0, level: 1, desc: 'Basic flexible pole for small panfish.' },
+                { id: 'rod_graphite', name: 'Ultralight Graphite Rod', cost: 120, power: 1.4, level: 2, desc: 'Responsive feel for trout & panfish.' },
+                { id: 'rod_carbon', name: 'Bass Striker Carbon Rod', cost: 450, power: 2.0, level: 5, desc: 'Great backbone for hooking bass and pike.' },
+                { id: 'rod_heavy', name: 'Heavy Duty Composite Rod', cost: 1200, power: 2.8, level: 10, desc: 'Tough build designed for catfish & salmon.' },
+                { id: 'rod_titanium', name: 'Monster Hunter Titanium Rod', cost: 3500, power: 3.8, level: 18, desc: 'Impervious composite for giant gar & sturgeon.' },
+                { id: 'rod_apex', name: 'Apex Legend Tournament Rod', cost: 8000, power: 5.0, level: 25, desc: 'The ultimate rod with maximum leverage!' }
+            ],
+            reels: [
+                { id: 'reel_starter', name: 'Starter Plastic Reel', cost: 0, speed: 1.0, drag: 1.0, level: 1, desc: 'Standard slow retrieve speed.' },
+                { id: 'reel_smooth', name: 'Smooth Spinner Reel', cost: 150, speed: 1.3, drag: 1.2, level: 3, desc: 'Smooth ball bearings for faster reeling.' },
+                { id: 'reel_baitcaster', name: 'Baitcaster Pro Reel', cost: 500, speed: 1.7, drag: 1.6, level: 6, desc: 'High gear ratio for fast retrieve.' },
+                { id: 'reel_mag', name: 'High Drag Mag Reel', cost: 1500, speed: 2.2, drag: 2.2, level: 12, desc: 'Strong drag system against thrashing predators.' },
+                { id: 'reel_titan', name: 'Titan Drag 5000 Reel', cost: 4000, speed: 3.0, drag: 3.2, level: 20, desc: 'Unstoppable cranking power for ocean-scale fish.' }
+            ],
+            lines: [
+                { id: 'line_6lb', name: '6 lb Monofilament', cost: 0, test: 6, maxTension: 100, level: 1, desc: 'Standard light line. Snaps easily on heavy fish.' },
+                { id: 'line_12lb', name: '12 lb Fluorocarbon', cost: 100, test: 12, maxTension: 150, level: 3, desc: 'Invisible underwater, decent resistance.' },
+                { id: 'line_25lb', name: '25 lb Braided Line', cost: 300, test: 25, maxTension: 230, level: 7, desc: 'Zero stretch braided line for heavy bass & pike.' },
+                { id: 'line_50lb', name: '50 lb Heavy Braid', cost: 900, test: 50, maxTension: 350, level: 14, desc: 'Thick braid capable of taming big catfish.' },
+                { id: 'line_100lb', name: '100 lb Titanium Braid', cost: 2500, test: 100, maxTension: 550, level: 22, desc: 'Unbreakable titanium core for monster Gar & Sturgeon!' }
+            ],
+            baits: [
+                { id: 'bread', name: 'Bread Crumbs', cost: 0, attract: 1.0, desc: 'Free basic bait. Attracts panfish & sunfish.' },
+                { id: 'worm', name: 'Earthworms', cost: 20, attract: 1.2, desc: 'Classic bait loved by panfish, trout, and catfish.' },
+                { id: 'minnow', name: 'Live Minnows', cost: 50, attract: 1.5, desc: 'Irresistible live bait for crappie, bass, and perch.' },
+                { id: 'spinnerbait', name: 'Flash Spinnerbait', cost: 120, attract: 1.8, desc: 'Vibrating blade attracts active trout & smallmouth bass.' },
+                { id: 'crankbait', name: 'Diver Crankbait', cost: 250, attract: 2.1, desc: 'Deep rattling lure that triggers reaction bites from bass.' },
+                { id: 'topwater_frog', name: 'Topwater Frog Lure', cost: 400, attract: 2.5, desc: 'Skips across weed mats! High chance for big Largemouth & Peacock Bass.' },
+                { id: 'cutbait', name: 'Heavy Cut Bait', cost: 600, attract: 2.8, desc: 'Scented fish chunks. Required to lure big Catfish, Gar & Sturgeon!' },
+                { id: 'swimbait', name: 'Monster Swimbait', cost: 1200, attract: 3.5, desc: 'Large paddle-tail swimbait that targets trophy Muskies & Monsters!' }
+            ]
+        };
+
+        // ==========================================
+        // COOKIE HELPERS
+        // ==========================================
+        function setCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (encodeURIComponent(value) || "") + expires + "; path=/; SameSite=Lax";
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+            }
+            return null;
+        }
+
+        // ==========================================
+        // PLAYER STATE & SAVING SYSTEM
+        // ==========================================
+        let player = {
+            level: 1,
+            xp: 0,
+            xpToNext: 100,
+            cash: 50.00,
+            currentLocation: 'piney_creek',
+            unlockedLocations: ['piney_creek'],
+            inventory: {
+                rods: ['rod_bamboo'],
+                reels: ['reel_starter'],
+                lines: ['line_6lb'],
+                baits: ['bread', 'worm']
+            },
+            equipped: {
+                rod: 'rod_bamboo',
+                reel: 'reel_starter',
+                line: 'line_6lb',
+                bait: 'bread'
+            },
+            logbook: {} // Key: speciesId -> { caughtCount: 0, pbWeight: 0, pbLength: 0, highestTier: 'NORMAL' }
+        };
+
+        function loadGameState() {
+            try {
+                const saved = getCookie('american_angler_master_save');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    player = { ...player, ...parsed };
+                }
+            } catch (e) {
+                console.error('Failed to load save state from cookies:', e);
+            }
+            // Ensure logbook entries exist for all species
+            Object.keys(SPECIES_DATABASE).forEach(spId => {
+                if (!player.logbook[spId]) {
+                    player.logbook[spId] = { caughtCount: 0, pbWeight: 0, pbLength: 0, highestTier: null };
+                }
+            });
+            updateHeaderUI();
+        }
+
+        function saveGameState() {
+            try {
+                setCookie('american_angler_master_save', JSON.stringify(player), 365);
+            } catch (e) {
+                console.error('Failed to save state to cookies:', e);
+            }
+        }
+
+        // ==========================================
+        // WEB AUDIO SYNTHESIS ENGINE
+        // ==========================================
+        let audioCtx = null;
+        let isMuted = false;
+        let tensionHumNode = null;
+        let tensionGainNode = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+        function toggleAudio() {
+            isMuted = !isMuted;
+            const icon = document.getElementById('soundIcon');
+            if (isMuted) {
+                icon.className = 'fa-solid fa-volume-xmark text-red-400';
+                if (tensionGainNode) tensionGainNode.gain.value = 0;
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-cyan-400';
+            }
+        }
+        function playReelClickSound() {
+            if (isMuted) return;
+            initAudio();
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(800 + Math.random() * 400, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.03);
+            } catch (e) {}
+        }
+        function playSplashSound() {
+            if (isMuted) return;
+            initAudio();
+            try {
+                const bufferSize = audioCtx.sampleRate * 0.2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1000, audioCtx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+                noise.start();
+            } catch (e) {}
+        }
+        function playCatchFanfare() {
+            if (isMuted) return;
+            initAudio();
+            try {
+                const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+                notes.forEach((freq, index) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.1);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime + index * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + index * 0.1 + 0.4);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + index * 0.1);
+                    osc.stop(audioCtx.currentTime + index * 0.1 + 0.4);
+                });
+            } catch (e) {}
+        }
+        function updateTensionHum(tensionRatio) {
+            if (isMuted || !audioCtx) return;
+            if (!tensionHumNode) {
+                try {
+                    tensionHumNode = audioCtx.createOscillator();
+                    tensionGainNode = audioCtx.createGain();
+                    tensionHumNode.type = 'sawtooth';
+                    tensionHumNode.frequency.setValueAtTime(100, audioCtx.currentTime);
+                    tensionGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                    tensionHumNode.connect(tensionGainNode);
+                    tensionGainNode.connect(audioCtx.destination);
+                    tensionHumNode.start();
+                } catch (e) {}
+            }
+            if (tensionGainNode && tensionHumNode) {
+                const freq = 100 + tensionRatio * 350;
+                const vol = tensionRatio > 0.1 ? Math.min(0.12, tensionRatio * 0.12) : 0;
+                tensionHumNode.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                tensionGainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+            }
+        }
+        function stopTensionHum() {
+            if (tensionGainNode && audioCtx) {
+                tensionGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            }
+        }
+        // ==========================================
+        // GAME ENGINE & CANVAS GRAPHICS SYSTEM
+        // ==========================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        // State Machine
+        const STATE_IDLE = 'IDLE';
+        const STATE_CASTING = 'CASTING';
+        const STATE_WAITING = 'WAITING';
+        const STATE_BITE = 'BITE';
+        const STATE_FIGHTING = 'FIGHTING';
+        let gameState = STATE_IDLE;
+        // Fishing Fight Variables
+        let bobber = { x: 0, y: 0, targetX: 0, targetY: 0 };
+        let activeFish = null; // { species, tier, weight, length, pullForce, stamina, maxStamina, distance, isJumping, jumpTimer }
+        let currentTension = 0; // 0 to maxTension
+        let isReeling = false;
+        let biteTimer = 0;
+        let biteHookWindow = 0;
+        let splashParticles = [];
+        let ambientFishShadows = [];
+        let jumpPromptTimer = 0;
+        let lastTimestamp = 0;
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            // Initialize bobber position
+            if (gameState === STATE_IDLE) {
+                bobber.x = canvas.width * 0.5;
+                bobber.y = canvas.height * 0.85;
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        // Spawn ambient fish shadows swimming in water
+        function initAmbientFish() {
+            ambientFishShadows = [];
+            for (let i = 0; i < 5; i++) {
+                ambientFishShadows.push({
+                    x: Math.random() * canvas.width,
+                    y: canvas.height * (0.6 + Math.random() * 0.35),
+                    speed: (0.3 + Math.random() * 0.6) * (Math.random() > 0.5 ? 1 : -1),
+                    size: 8 + Math.random() * 16,
+                    tailPhase: Math.random() * Math.PI * 2
+                });
+            }
+        }
+        function renderCanvas(time) {
+            const dt = lastTimestamp ? Math.min(0.1, (time - lastTimestamp) / 1000) : 0.016;
+            lastTimestamp = time;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const loc = LOCATIONS.find(l => l.id === player.currentLocation) || LOCATIONS[0];
+            // 1. Render Sky Gradient
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.5);
+            skyGrad.addColorStop(0, loc.skyColor[0]);
+            skyGrad.addColorStop(1, loc.skyColor[1]);
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height * 0.5);
+            // Horizon Mountains / Hills
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height * 0.5);
+            ctx.quadraticCurveTo(canvas.width * 0.25, canvas.height * 0.38, canvas.width * 0.5, canvas.height * 0.5);
+            ctx.quadraticCurveTo(canvas.width * 0.75, canvas.height * 0.42, canvas.width, canvas.height * 0.5);
+            ctx.lineTo(canvas.width, canvas.height * 0.5);
+            ctx.lineTo(0, canvas.height * 0.5);
+            ctx.fill();
+            // Background Foliage Tree Silhouettes
+            ctx.fillStyle = loc.foliageColor;
+            for (let x = 0; x < canvas.width; x += 30) {
+                const treeH = 20 + Math.sin(x * 0.05) * 12;
+                ctx.beginPath();
+                ctx.arc(x + 15, canvas.height * 0.5, treeH, Math.PI, 0);
+                ctx.fill();
+            }
+            // 2. Render Water Body
+            const waterY = canvas.height * 0.5;
+            const waterGrad = ctx.createLinearGradient(0, waterY, 0, canvas.height);
+            waterGrad.addColorStop(0, loc.waterColor);
+            waterGrad.addColorStop(1, '#020617');
+            ctx.fillStyle = waterGrad;
+            ctx.fillRect(0, waterY, canvas.width, canvas.height - waterY);
+            // Water Ripple Lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.lineWidth = 1.5;
+            for (let y = waterY + 15; y < canvas.height; y += 22) {
+                ctx.beginPath();
+                const offset = Math.sin(time * 0.002 + y) * 8;
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y + offset * 0.2);
+                ctx.stroke();
+            }
+            // 3. Render Ambient Swimming Fish Shadows
+            ambientFishShadows.forEach(f => {
+                f.x += f.speed;
+                f.tailPhase += 0.1;
+                if (f.x < -40) f.x = canvas.width + 40;
+                if (f.x > canvas.width + 40) f.x = -40;
+                ctx.save();
+                ctx.translate(f.x, f.y);
+                if (f.speed < 0) ctx.scale(-1, 1);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, f.size, f.size * 0.4, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Tail
+                const tailWiggle = Math.sin(f.tailPhase) * 4;
+                ctx.beginPath();
+                ctx.moveTo(-f.size, 0);
+                ctx.lineTo(-f.size - 8, -4 + tailWiggle);
+                ctx.lineTo(-f.size - 8, 4 + tailWiggle);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            });
+            // 4. Update & Draw Splash Particles
+            splashParticles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.3; // Gravity
+                p.alpha -= 0.03;
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, p.alpha)})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                if (p.alpha <= 0) splashParticles.splice(idx, 1);
+            });
+            // 5. Draw Fishing Line & Rod Bend
+            const rodBaseX = canvas.width * 0.15;
+            const rodBaseY = canvas.height;
+            const rodTipX = canvas.width * 0.35;
+            let rodTipY = canvas.height * 0.3;
+            // Apply tension bending to rod tip
+            if (gameState === STATE_FIGHTING) {
+                const tensionRatio = currentTension / getEquippedLine().maxTension;
+                rodTipY += tensionRatio * 40;
+            }
+            // Draw Rod
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(rodBaseX, rodBaseY);
+            ctx.lineTo(rodTipX, rodTipY);
+            ctx.stroke();
+            // Draw Line to Bobber
+            if (gameState !== STATE_IDLE) {
+                ctx.strokeStyle = gameState === STATE_FIGHTING && currentTension > getEquippedLine().maxTension * 0.85 ? '#ef4444' : 'rgba(241, 245, 249, 0.7)';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(rodTipX, rodTipY);
+                // Curve line slightly based on slack/tension
+                const midX = (rodTipX + bobber.x) / 2;
+                const midY = (rodTipY + bobber.y) / 2 + (gameState === STATE_FIGHTING ? -10 : 25);
+                ctx.quadraticCurveTo(midX, midY, bobber.x, bobber.y);
+                ctx.stroke();
+            }
+            // 6. Draw Bobber & Fish Jump Effects
+            if (gameState !== STATE_IDLE) {
+                ctx.save();
+                ctx.translate(bobber.x, bobber.y);
+                // Bobber float motion
+                const floatY = gameState === STATE_WAITING ? Math.sin(time * 0.005) * 3 : 0;
+                // Bobber Ripple
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.ellipse(0, floatY, 12, 5, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                // Bobber Top (Red)
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(0, floatY - 4, 6, Math.PI, 0);
+                ctx.fill();
+                // Bobber Bottom (White)
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, floatY - 4, 6, 0, Math.PI);
+                ctx.fill();
+                ctx.restore();
+            }
+            // 7. Render Jumping Fish Visual on Canvas during FIGHTING JUMP
+            if (gameState === STATE_FIGHTING && activeFish && activeFish.isJumping) {
+                ctx.save();
+                ctx.translate(bobber.x, bobber.y - 35);
+                // Draw jumping shadow silhouette & splash aura
+                ctx.fillStyle = activeFish.tier === 'UNIQUE' ? 'rgba(168, 85, 247, 0.8)' : activeFish.tier === 'TROPHY' ? 'rgba(234, 179, 8, 0.8)' : '#38bdf8';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 24, 12, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '900 12px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('JUMP!', 0, -18);
+                ctx.restore();
+            }
+            // Loop updates
+            updateGamePhysics(dt);
+            requestAnimationFrame(renderCanvas);
+        }
+        function createSplash(x, y, count = 12) {
+            playSplashSound();
+            for (let i = 0; i < count; i++) {
+                splashParticles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: -Math.random() * 5 - 2,
+                    radius: 2 + Math.random() * 3,
+                    alpha: 1.0
+                });
+            }
+        }
+        // ==========================================
+        // GAME LOGIC & FIGHT PHYSICS
+        // ==========================================
+        function getEquippedRod() { return SHOP_ITEMS.rods.find(r => r.id === player.equipped.rod); }
+        function getEquippedReel() { return SHOP_ITEMS.reels.find(r => r.id === player.equipped.reel); }
+        function getEquippedLine() { return SHOP_ITEMS.lines.find(l => l.id === player.equipped.line); }
+        function getEquippedBait() { return SHOP_ITEMS.baits.find(b => b.id === player.equipped.bait); }
+        function setHudPrompt(text, colorClass = 'text-cyan-300') {
+            const prompt = document.getElementById('hudPromptText');
+            prompt.innerText = text;
+            prompt.className = `px-5 py-2 rounded-full font-black text-sm md:text-base tracking-wide bg-slate-950/80 border border-slate-700 backdrop-blur-md shadow-xl ${colorClass}`;
+        }
+        function handleCastButton() {
+            if (gameState === STATE_IDLE) {
+                initAudio();
+                gameState = STATE_CASTING;
+                setHudPrompt('CASTING LINE...', 'text-amber-400');
+                // Animate bobber cast landing
+                const targetX = canvas.width * (0.4 + Math.random() * 0.4);
+                const targetY = canvas.height * (0.55 + Math.random() * 0.25);
+                bobber.x = canvas.width * 0.35;
+                bobber.y = canvas.height * 0.3;
+                let progress = 0;
+                const castInterval = setInterval(() => {
+                    progress += 0.08;
+                    bobber.x = canvas.width * 0.35 + (targetX - canvas.width * 0.35) * progress;
+                    bobber.y = canvas.height * 0.3 + (targetY - canvas.height * 0.3) * progress;
+                    if (progress >= 1) {
+                        clearInterval(castInterval);
+                        bobber.x = targetX;
+                        bobber.y = targetY;
+                        createSplash(bobber.x, bobber.y, 10);
+                        gameState = STATE_WAITING;
+                        setHudPrompt('WAITING FOR BITE...', 'text-cyan-400');
+                        // Calculate bite delay modified by bait
+                        const bait = getEquippedBait();
+                        biteTimer = (3.5 + Math.random() * 4.5) / bait.attract;
+                    }
+                }, 20);
+            }
+        }
+        function triggerBite() {
+            gameState = STATE_BITE;
+            createSplash(bobber.x, bobber.y, 18);
+            setHudPrompt('⚡ FISH ON! PRESS REEL TO HOOK!', 'text-amber-400 font-extrabold animate-pulse');
+            biteHookWindow = 2.2; // 2.2 seconds to react
+            // Select Fish Species based on current location
+            const loc = LOCATIONS.find(l => l.id === player.currentLocation);
+            const possibleSpeciesKeys = loc.species;
+            // Pick random species weighted by favorite bait match
+            const activeBaitKey = player.equipped.bait;
+            let candidateKeys = possibleSpeciesKeys.filter(key => {
+                const sp = SPECIES_DATABASE[key];
+                return sp.favBaits.includes(activeBaitKey);
+            });
+            if (candidateKeys.length === 0) candidateKeys = possibleSpeciesKeys; // Fallback
+            const chosenKey = candidateKeys[Math.floor(Math.random() * candidateKeys.length)];
+            const sp = SPECIES_DATABASE[chosenKey];
+            // Determine Tier Rarity (Normal 70%, Trophy 22%, Unique Monster 8%)
+            const roll = Math.random();
+            let tier = 'NORMAL';
+            if (roll > 0.92) tier = 'UNIQUE';
+            else if (roll > 0.70) tier = 'TROPHY';
+            // Calculate realistic size and weight based on tier
+            let length, weight;
+            if (tier === 'NORMAL') {
+                length = sp.minLen + Math.random() * (sp.maxLen - sp.minLen);
+                weight = sp.minW + Math.random() * (sp.maxW - sp.minW);
+            } else if (tier === 'TROPHY') {
+                length = sp.maxLen * (1.1 + Math.random() * 0.25);
+                weight = sp.maxW * (1.2 + Math.random() * 0.4);
+            } else { // UNIQUE
+                length = sp.maxLen * (1.35 + Math.random() * 0.4);
+                weight = sp.maxW * (1.6 + Math.random() * 0.8);
+            }
+            // Fight stamina scaling
+            const tierMult = tier === 'UNIQUE' ? 2.2 : tier === 'TROPHY' ? 1.5 : 1.0;
+            const pullForce = sp.pullPower * (weight / sp.maxW) * tierMult;
+            const stamina = sp.stamina * tierMult;
+            activeFish = {
+                species: sp,
+                tier: tier,
+                length: parseFloat(length.toFixed(1)),
+                weight: parseFloat(weight.toFixed(1)),
+                pullForce: pullForce,
+                stamina: stamina,
+                maxStamina: stamina,
+                distance: 70 + Math.random() * 30, // 70 to 100 ft out
+                isJumping: false,
+                jumpTimer: 3 + Math.random() * 4
+            };
+        }
+        function hookFish() {
+            if (gameState === STATE_BITE) {
+                gameState = STATE_FIGHTING;
+                currentTension = getEquippedLine().maxTension * 0.35;
+                document.getElementById('reelBtn').disabled = false;
+                document.getElementById('reelBtn').classList.remove('opacity-60', 'cursor-not-allowed');
+                document.getElementById('distanceHud').classList.remove('hidden');
+                setHudPrompt('KEEP TENSION IN GREEN SAFE ZONE!', 'text-emerald-400');
+            }
+        }
+        function startReeling(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            isReeling = true;
+            if (gameState === STATE_BITE) {
+                hookFish();
+            }
+        }
+        function stopReeling(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            isReeling = false;
+        }
+        // Keybindings (Spacebar for Reeling)
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !e.repeat) {
+                e.preventDefault();
+                if (gameState === STATE_IDLE) handleCastButton();
+                else startReeling();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                stopReeling();
+            }
+        });
+        function updateGamePhysics(dt) {
+            if (gameState === STATE_WAITING) {
+                biteTimer -= dt;
+                if (biteTimer <= 0) {
+                    triggerBite();
+                }
+            } else if (gameState === STATE_BITE) {
+                biteHookWindow -= dt;
+                if (biteHookWindow <= 0) {
+                    // Missed bite!
+                    gameState = STATE_IDLE;
+                    setHudPrompt('MISSED BITE! TRY AGAIN.', 'text-slate-400');
+                    setTimeout(() => { if (gameState === STATE_IDLE) setHudPrompt('CAST YOUR BAIT'); }, 2000);
+                }
+            } else if (gameState === STATE_FIGHTING && activeFish) {
+                const line = getEquippedLine();
+                const rod = getEquippedRod();
+                const reel = getEquippedReel();
+                // Handle Fish Jump Event dynamics
+                activeFish.jumpTimer -= dt;
+                if (activeFish.jumpTimer <= 0) {
+                    if (!activeFish.isJumping) {
+                        // Trigger Jump
+                        activeFish.isJumping = true;
+                        createSplash(bobber.x, bobber.y, 25);
+                        document.getElementById('jumpAlert').classList.remove('hidden');
+                        activeFish.jumpTimer = 1.8; // Duration of jump
+                    } else {
+                        // Jump ended
+                        activeFish.isJumping = false;
+                        document.getElementById('jumpAlert').classList.add('hidden');
+                        activeFish.jumpTimer = 4 + Math.random() * 6; // Time until next jump
+                    }
+                }
+                // Tension Calculation
+                if (isReeling) {
+                    playReelClickSound();
+                    let reelPowerGain = (22 * rod.power * reel.speed);
+                    if (activeFish.isJumping) {
+                        // Penalize reeling while fish is jumping!
+                        reelPowerGain *= 2.8;
+                        setHudPrompt('⚠️ DON\'T REEL WHILE FISH JUMPS!', 'text-red-400 font-extrabold animate-pulse');
+                    } else {
+                        setHudPrompt('REELING IN...', 'text-emerald-300');
+                    }
+                    currentTension += reelPowerGain * dt;
+                    // Pull fish closer
+                    const distPulled = (8 * reel.speed) * dt;
+                    activeFish.distance = Math.max(0, activeFish.distance - distPulled);
+                    // Reeling wears down fish stamina
+                    activeFish.stamina -= 12 * dt;
+                } else {
+                    // Not reeling - tension drops
+                    currentTension -= 35 * dt;
+                    if (activeFish.isJumping) {
+                        // Releasing reel during a jump rewards huge stamina drop to fish!
+                        activeFish.stamina -= 25 * dt;
+                        setHudPrompt('GREAT JOB! EASED TENSION ON JUMP!', 'text-cyan-400 font-bold');
+                    } else {
+                        setHudPrompt('HOLD REEL / SPACEBAR', 'text-amber-300');
+                    }
+                    // Fish pulls distance back if stamina is high
+                    if (activeFish.stamina > 0) {
+                        activeFish.distance += (activeFish.pullForce * 0.15) * dt;
+                    }
+                }
+                // Fish pulling adds to tension dynamically
+                if (activeFish.stamina > 0 && !activeFish.isJumping) {
+                    currentTension += (activeFish.pullForce * 0.35) * dt;
+                }
+                // Clamp tension bounds
+                currentTension = Math.max(0, currentTension);
+                const tensionRatio = currentTension / line.maxTension;
+                updateTensionHum(tensionRatio);
+                // Update Tension Gauge UI
+                const tensionPct = Math.min(100, Math.round(tensionRatio * 100));
+                document.getElementById('tensionPercentText').innerText = `${tensionPct}%`;
+                document.getElementById('tensionInnerBar').style.width = `${tensionPct}%`;
+                document.getElementById('fishDistanceVal').innerText = `${Math.round(activeFish.distance)} ft`;
+                // Safe Zone Overlay Alignment
+                // Safe zone is between 30% and 75%
+                const dangerOverlay = document.getElementById('dangerOverlay');
+                if (tensionPct >= 90) {
+                    dangerOverlay.style.opacity = '1';
+                    setHudPrompt('⚠️ WARNING! LINE NEARLY SNAPPING!', 'text-red-500 font-black');
+                } else if (tensionPct <= 5 && isReeling === false && activeFish.distance > 10) {
+                    dangerOverlay.style.opacity = '0';
+                    setHudPrompt('⚠️ LINE SLACK! KEEP TENSION!', 'text-amber-400');
+                } else {
+                    dangerOverlay.style.opacity = '0';
+                }
+                // WIN CONDITION: Fish Reeled to 0 ft
+                if (activeFish.distance <= 0) {
+                    handleFishCaught();
+                    return;
+                }
+                // LOSE CONDITION 1: Line Snaps (Tension > maxTension)
+                if (currentTension >= line.maxTension) {
+                    handleFishEscaped('Line Snapped!', `The tension exceeded your ${line.name}'s test limit (${line.test} lbs). Upgrade your line in the shop!`);
+                    return;
+                }
+                // LOSE CONDITION 2: Slack unhook (Tension = 0 for too long)
+                if (currentTension <= 0 && !isReeling && activeFish.stamina > 20) {
+                    handleFishEscaped('Fish Unhooked!', 'The line went completely slack, allowing the fish to shake off the hook!');
+                    return;
+                }
+            } else {
+                // Not fighting
+                document.getElementById('tensionPercentText').innerText = '0%';
+                document.getElementById('tensionInnerBar').style.width = '0%';
+                stopTensionHum();
+            }
+        }
+        function handleFishCaught() {
+            stopTensionHum();
+            document.getElementById('reelBtn').disabled = true;
+            document.getElementById('reelBtn').classList.add('opacity-60', 'cursor-not-allowed');
+            document.getElementById('distanceHud').classList.add('hidden');
+            document.getElementById('jumpAlert').classList.add('hidden');
+            document.getElementById('dangerOverlay').style.opacity = '0';
+            playCatchFanfare();
+            const fish = activeFish;
+            gameState = STATE_IDLE;
+            // Calculate Base Value & Tier Multipliers
+            // Tier Payout Multiplier: Normal 1.0x, Trophy 2.8x, Unique 6.0x
+            const multiplier = fish.tier === 'UNIQUE' ? 6.0 : fish.tier === 'TROPHY' ? 2.8 : 1.0;
+            const earnedCash = fish.weight * fish.species.baseVal * multiplier;
+            const earnedXp = Math.round(fish.weight * fish.species.xpPerLb * (fish.tier === 'UNIQUE' ? 3.0 : fish.tier === 'TROPHY' ? 1.8 : 1.0));
+            // Store current caught object for modal decision
+            window.lastCatch = {
+                fish: fish,
+                cash: parseFloat(earnedCash.toFixed(2)),
+                xp: earnedXp
+            };
+            // Update Logbook PB & Badges
+            const logEntry = player.logbook[fish.species.id];
+            logEntry.caughtCount += 1;
+            if (fish.weight > logEntry.pbWeight) logEntry.pbWeight = fish.weight;
+            if (fish.length > logEntry.pbLength) logEntry.pbLength = fish.length;
+            if (fish.tier === 'UNIQUE') logEntry.highestTier = 'UNIQUE';
+            else if (fish.tier === 'TROPHY' && logEntry.highestTier !== 'UNIQUE') logEntry.highestTier = 'TROPHY';
+            else if (!logEntry.highestTier) logEntry.highestTier = 'NORMAL';
+            saveGameState();
+            // Populate & Display Modal
+            const modal = document.getElementById('catchModal');
+            const content = document.getElementById('catchModalContent');
+            const tierBadge = document.getElementById('modalTierBadge');
+            document.getElementById('modalFishName').innerText = fish.species.name;
+            document.getElementById('modalFishCat').innerText = `${fish.species.category} • ${LOCATIONS.find(l => l.id === player.currentLocation).name}`;
+            if (fish.tier === 'UNIQUE') {
+                tierBadge.innerText = '👑 UNIQUE MONSTER CATCH (6.0x Payout)';
+                tierBadge.className = 'mb-2 px-4 py-1 rounded-full font-black text-xs uppercase tracking-widest bg-purple-950 text-cyan-300 border border-cyan-400 tier-unique-card';
+                content.className = 'bg-slate-900 border-2 border-cyan-400 rounded-3xl max-w-md w-full p-6 shadow-2xl relative flex flex-col items-center text-center tier-unique-card';
+            } else if (fish.tier === 'TROPHY') {
+                tierBadge.innerText = '⭐ TROPHY CATCH (2.8x Payout)';
+                tierBadge.className = 'mb-2 px-4 py-1 rounded-full font-black text-xs uppercase tracking-widest bg-amber-950 text-amber-300 border border-amber-400 tier-trophy-card';
+                content.className = 'bg-slate-900 border-2 border-amber-400 rounded-3xl max-w-md w-full p-6 shadow-2xl relative flex flex-col items-center text-center tier-trophy-card';
+            } else {
+                tierBadge.innerText = 'NORMAL CATCH';
+                tierBadge.className = 'mb-2 px-4 py-1 rounded-full font-black text-xs uppercase tracking-widest bg-slate-800 text-slate-300 border border-slate-700';
+                content.className = 'bg-slate-900 border-2 border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl relative flex flex-col items-center text-center';
+            }
+            // Measurements
+            const cmLen = (fish.length * 2.54).toFixed(1);
+            const kgWt = (fish.weight * 0.453592).toFixed(1);
+            document.getElementById('modalLengthDisplay').innerHTML = `${fish.length} in <span class="text-xs text-slate-400 font-normal">(${cmLen} cm)</span>`;
+            document.getElementById('modalWeightDisplay').innerHTML = `${fish.weight} lbs <span class="text-xs text-slate-400 font-normal">(${kgWt} kg)</span>`;
+            document.getElementById('modalCashEarned').innerText = `+$${earnedCash.toFixed(2)}`;
+            document.getElementById('modalXpEarned').innerText = `+${earnedXp} XP`;
+            // Render procedural fish drawing on modal canvas
+            renderFishCanvas('fishPreviewCanvas', fish.species, fish.tier);
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+            }, 50);
+        }
+        function keepCatch(sellForCash) {
+            const catchData = window.lastCatch;
+            if (catchData) {
+                if (sellForCash) {
+                    player.cash += catchData.cash;
+                    addXP(catchData.xp);
+                } else {
+                    // Release for 1.5x XP
+                    addXP(Math.round(catchData.xp * 1.5));
+                }
+                saveGameState();
+                updateHeaderUI();
+            }
+            const modal = document.getElementById('catchModal');
+            document.getElementById('catchModalContent').classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                setHudPrompt('CAST YOUR BAIT');
+            }, 200);
+        }
+        function handleFishEscaped(title, reason) {
+            stopTensionHum();
+            gameState = STATE_IDLE;
+            document.getElementById('reelBtn').disabled = true;
+            document.getElementById('reelBtn').classList.add('opacity-60', 'cursor-not-allowed');
+            document.getElementById('distanceHud').classList.add('hidden');
+            document.getElementById('jumpAlert').classList.add('hidden');
+            document.getElementById('dangerOverlay').style.opacity = '0';
+            document.getElementById('escapeTitle').innerText = title;
+            document.getElementById('escapeReason').innerText = reason;
+            document.getElementById('escapeModal').classList.remove('hidden');
+            setHudPrompt('FISH ESCAPED! TRY AGAIN.');
+        }
+        function closeEscapeModal() {
+            document.getElementById('escapeModal').classList.add('hidden');
+            setHudPrompt('CAST YOUR BAIT');
+        }
+        function addXP(amount) {
+            player.xp += amount;
+            while (player.xp >= player.xpToNext) {
+                player.xp -= player.xpToNext;
+                player.level += 1;
+                player.xpToNext = Math.round(player.xpToNext * 1.4);
+                // Level Up Alert Prompt
+                setHudPrompt(`🎉 LEVEL UP! YOU ARE NOW LEVEL ${player.level}!`, 'text-amber-300 font-extrabold');
+            }
+            updateHeaderUI();
+        }
+        // ==========================================
+        // PROCEDURAL CANVAS FISH VISUALIZER
+        // ==========================================
+        function renderFishCanvas(canvasId, species, tier) {
+            const c = document.getElementById(canvasId);
+            if (!c) return;
+            const pctx = c.getContext('2d');
+            pctx.clearRect(0, 0, c.width, c.height);
+            const w = c.width;
+            const h = c.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            pctx.save();
+            // Unique Tier Neon Glowing Background
+            if (tier === 'UNIQUE') {
+                const radial = pctx.createRadialGradient(cx, cy, 10, cx, cy, 120);
+                radial.addColorStop(0, 'rgba(168, 85, 247, 0.4)');
+                radial.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                pctx.fillStyle = radial;
+                pctx.fillRect(0, 0, w, h);
+            } else if (tier === 'TROPHY') {
+                const radial = pctx.createRadialGradient(cx, cy, 10, cx, cy, 120);
+                radial.addColorStop(0, 'rgba(234, 179, 8, 0.3)');
+                radial.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                pctx.fillStyle = radial;
+                pctx.fillRect(0, 0, w, h);
+            }
+            // Draw Fish Body based on species body type
+            pctx.translate(cx, cy);
+            const bodyLen = 110;
+            let bodyH = species.bodyType === 'panfish' ? 55 : species.bodyType === 'bass' ? 42 : species.bodyType === 'gar' ? 18 : species.bodyType === 'sturgeon' ? 26 : 32;
+            // Tail Fin
+            pctx.fillStyle = species.colorBody;
+            pctx.beginPath();
+            pctx.moveTo(-bodyLen * 0.4, 0);
+            pctx.lineTo(-bodyLen * 0.6, -bodyH * 0.7);
+            pctx.lineTo(-bodyLen * 0.6, bodyH * 0.7);
+            pctx.closePath();
+            pctx.fill();
+            // Main Body Oval Shape
+            const bodyGrad = pctx.createLinearGradient(0, -bodyH, 0, bodyH);
+            bodyGrad.addColorStop(0, species.colorBody);
+            bodyGrad.addColorStop(0.7, species.colorBody);
+            bodyGrad.addColorStop(1, species.colorBelly);
+            pctx.fillStyle = bodyGrad;
+            pctx.beginPath();
+            pctx.ellipse(0, 0, bodyLen * 0.45, bodyH, 0, 0, Math.PI * 2);
+            pctx.fill();
+            // Dorsal Fin
+            pctx.fillStyle = species.spots || species.colorBody;
+            pctx.beginPath();
+            pctx.moveTo(-10, -bodyH);
+            pctx.quadraticCurveTo(15, -bodyH - 22, 30, -bodyH + 5);
+            pctx.closePath();
+            pctx.fill();
+            // Species Specific Details (Gar snout, Catfish barbels, Sturgeon scutes)
+            if (species.bodyType === 'gar') {
+                // Long beak needle snout
+                pctx.fillStyle = species.colorBody;
+                pctx.beginPath();
+                pctx.moveTo(bodyLen * 0.4, -6);
+                pctx.lineTo(bodyLen * 0.75, -2);
+                pctx.lineTo(bodyLen * 0.75, 2);
+                pctx.lineTo(bodyLen * 0.4, 6);
+                pctx.closePath();
+                pctx.fill();
+            } else if (species.bodyType === 'catfish') {
+                // Barbels (whiskers)
+                pctx.strokeStyle = '#1e293b';
+                pctx.lineWidth = 2;
+                pctx.beginPath();
+                pctx.moveTo(bodyLen * 0.35, 5);
+                pctx.quadraticCurveTo(bodyLen * 0.5, 18, bodyLen * 0.6, 22);
+                pctx.moveTo(bodyLen * 0.35, -5);
+                pctx.quadraticCurveTo(bodyLen * 0.5, -18, bodyLen * 0.6, -22);
+                pctx.stroke();
+            } else if (species.bodyType === 'paddlefish') {
+                // Long Paddle Snout
+                pctx.fillStyle = species.colorBody;
+                pctx.beginPath();
+                pctx.moveTo(bodyLen * 0.3, -8);
+                pctx.lineTo(bodyLen * 0.8, -12);
+                pctx.arc(bodyLen * 0.8, 0, 12, -Math.PI / 2, Math.PI / 2);
+                pctx.lineTo(bodyLen * 0.3, 8);
+                pctx.closePath();
+                pctx.fill();
+            }
+            // Spots / Patterns
+            if (species.spots) {
+                pctx.fillStyle = species.spots;
+                for (let i = -3; i <= 3; i++) {
+                    pctx.beginPath();
+                    pctx.arc(i * 12, (i % 2) * 8, 3.5, 0, Math.PI * 2);
+                    pctx.fill();
+                }
+            }
+            // Eye
+            pctx.fillStyle = '#ffffff';
+            pctx.beginPath();
+            pctx.arc(bodyLen * 0.3, -bodyH * 0.2, 5, 0, Math.PI * 2);
+            pctx.fill();
+            pctx.fillStyle = '#0f172a';
+            pctx.beginPath();
+            pctx.arc(bodyLen * 0.3 + 1, -bodyH * 0.2, 2.5, 0, Math.PI * 2);
+            pctx.fill();
+            pctx.restore();
+        }
+        // ==========================================
+        // UI & NAVIGATION CONTROLLERS
+        // ==========================================
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.className = 'tab-btn px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 text-slate-400 hover:bg-slate-800 hover:text-white transition';
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tabBtn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.className = 'tab-btn active px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 bg-cyan-600 text-white transition';
+            }
+            if (tabId === 'locations') renderLocationsTab();
+            if (tabId === 'shop') renderShopTab();
+            if (tabId === 'logbook') renderLogbookTab();
+        }
+        function updateHeaderUI() {
+            document.getElementById('playerLevelDisplay').innerText = player.level;
+            document.getElementById('cashDisplay').innerText = `$${player.cash.toFixed(2)}`;
+            document.getElementById('xpTextDisplay').innerText = `${player.xp}/${player.xpToNext} XP`;
+            const pct = Math.min(100, (player.xp / player.xpToNext) * 100);
+            document.getElementById('xpProgressBar').style.width = `${pct}%`;
+            const currentLoc = LOCATIONS.find(l => l.id === player.currentLocation) || LOCATIONS[0];
+            document.getElementById('currentLocNameNav').innerText = currentLoc.name.split(',')[0];
+            document.getElementById('canvasLocName').innerText = currentLoc.name;
+            // Render active bait quick select
+            renderQuickBaitSelector();
+            // Update equipped items summary
+            document.getElementById('eqRodName').innerText = getEquippedRod().name;
+            document.getElementById('eqReelName').innerText = getEquippedReel().name;
+            document.getElementById('eqLineName').innerText = getEquippedLine().name;
+        }
+        function renderQuickBaitSelector() {
+            const container = document.getElementById('quickBaitList');
+            container.innerHTML = '';
+            player.inventory.baits.forEach(baitId => {
+                const bait = SHOP_ITEMS.baits.find(b => b.id === baitId);
+                if (!bait) return;
+                const isEquipped = player.equipped.bait === bait.id;
+                const div = document.createElement('div');
+                div.onclick = () => {
+                    player.equipped.bait = bait.id;
+                    saveGameState();
+                    updateHeaderUI();
+                };
+                div.className = `p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition ${isEquipped ? 'bg-cyan-950/60 border-cyan-500 text-white' : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'}`;
+                div.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid ${isEquipped ? 'fa-circle-dot text-cyan-400' : 'fa-circle text-slate-600'} text-xs"></i>
+                        <span class="font-bold text-xs ${isEquipped ? 'text-cyan-300' : 'text-slate-300'}">${bait.name}</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-500">${bait.attract}x Bite Rate</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+        function renderLocationsTab() {
+            const grid = document.getElementById('locationsGrid');
+            grid.innerHTML = '';
+            LOCATIONS.forEach(loc => {
+                const isUnlocked = player.unlockedLocations.includes(loc.id);
+                const isCurrent = player.currentLocation === loc.id;
+                const canUnlock = player.level >= loc.levelReq;
+                const speciesNames = loc.species.map(s => SPECIES_DATABASE[s]?.name || s).slice(0, 4).join(', ') + (loc.species.length > 4 ? '...' : '');
+                const card = document.createElement('div');
+                card.className = `bg-slate-900 border ${isCurrent ? 'border-cyan-400 ring-2 ring-cyan-500/30' : 'border-slate-800'} rounded-2xl p-5 shadow-xl flex flex-col justify-between relative overflow-hidden`;
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${isUnlocked ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-400'}">
+                                ${isUnlocked ? 'UNLOCKED' : `LEVEL ${loc.levelReq} REQ`}
+                            </span>
+                            ${isCurrent ? '<span class="text-xs font-extrabold text-cyan-400 flex items-center gap-1"><i class="fa-solid fa-location-crosshairs"></i> CURRENT WATER</span>' : ''}
+                        </div>
+                        <h3 class="text-lg font-black text-white mb-1">${loc.name}</h3>
+                        <p class="text-xs text-slate-400 mb-4">${loc.tagline}</p>
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 mb-4">
+                            <div class="text-[10px] uppercase font-bold text-slate-500 mb-1">Target Species (${loc.species.length})</div>
+                            <div class="text-xs text-slate-300">${speciesNames}</div>
+                        </div>
+                    </div>
+                    <div>
+                        ${isCurrent ? `
+                            <button disabled class="w-full bg-slate-800 text-slate-500 font-extrabold py-2.5 rounded-xl text-xs cursor-default">Active Location</button>
+                        ` : isUnlocked ? `
+                            <button onclick="travelToLocation('${loc.id}')" class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-lg transition active:scale-95">Travel Now</button>
+                        ` : `
+                            <button onclick="unlockLocation('${loc.id}')" ${!canUnlock ? 'disabled' : ''} class="w-full ${canUnlock ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white' : 'bg-slate-800 text-slate-500 cursor-not-allowed'} font-extrabold py-2.5 rounded-xl text-xs shadow-lg transition flex items-center justify-center gap-1">                                 <i class="fa-solid fa-lock text-xs"></i> Unlock ($${loc.travelCost})
+                            </button>
+                        `}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        function travelToLocation(locId) {
+            player.currentLocation = locId;
+            saveGameState();
+            updateHeaderUI();
+            renderLocationsTab();
+            switchTab('fishing');
+            setHudPrompt('LOCATION CHANGED! CAST BAIT.');
+        }
+        function unlockLocation(locId) {
+            const loc = LOCATIONS.find(l => l.id === locId);
+            if (!loc) return;
+            if (player.level < loc.levelReq) {
+                alert(`You need Level ${loc.levelReq} to unlock this location!`);
+                return;
+            }
+            if (player.cash < loc.travelCost) {
+                alert(`Not enough cash! Required: $${loc.travelCost}`);
+                return;
+            }
+            player.cash -= loc.travelCost;
+            player.unlockedLocations.push(loc.id);
+            player.currentLocation = loc.id;
+            saveGameState();
+            updateHeaderUI();
+            renderLocationsTab();
+            switchTab('fishing');
+        }
+        let activeShopCategory = 'rods';
+        function switchShopCategory(cat) {
+            activeShopCategory = cat;
+            document.querySelectorAll('.shop-cat-btn').forEach(b => {
+                b.className = 'shop-cat-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white';
+            });
+            document.getElementById(`shopCatBtn-${cat}`).className = 'shop-cat-btn active px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 text-white';
+            renderShopTab();
+        }
+        function renderShopTab() {
+            const grid = document.getElementById('shopItemsGrid');
+            grid.innerHTML = '';
+            const items = SHOP_ITEMS[activeShopCategory] || [];
+            items.forEach(item => {
+                const singleCatKey = activeShopCategory === 'baits' ? 'baits' : activeShopCategory === 'lines' ? 'lines' : activeShopCategory === 'reels' ? 'reels' : 'rods';
+                const singularKey = activeShopCategory === 'baits' ? 'bait' : activeShopCategory === 'lines' ? 'line' : activeShopCategory === 'reels' ? 'reel' : 'rod';
+                const isOwned = player.inventory[singleCatKey].includes(item.id);
+                const isEquipped = player.equipped[singularKey] === item.id;
+                const canAfford = player.cash >= item.cost;
+                const levelReqMet = player.level >= (item.level || 1);
+                const card = document.createElement('div');
+                card.className = `bg-slate-900 border ${isEquipped ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-800'} rounded-2xl p-5 shadow-xl flex flex-col justify-between`;
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-extrabold text-amber-400 font-mono">${item.cost === 0 ? 'FREE' : `$${item.cost}`}</span>
+                            <span class="text-[10px] text-slate-500 uppercase font-bold">Lvl ${item.level || 1} Req</span>
+                        </div>
+                        <h3 class="text-base font-black text-white mb-1">${item.name}</h3>
+                        <p class="text-xs text-slate-400 mb-4">${item.desc}</p>
+                    </div>
+                    <div>
+                        ${isEquipped ? `
+                            <button disabled class="w-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-extrabold py-2.5 rounded-xl text-xs cursor-default">Equipped</button>
+                        ` : isOwned ? `
+                            <button onclick="equipItem('${singularKey}', '${item.id}')" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-extrabold py-2.5 rounded-xl text-xs border border-slate-700 transition">Equip Gear</button>
+                        ` : `
+                            <button onclick="buyShopItem('${singleCatKey}', '${item.id}')" ${!canAfford || !levelReqMet ? 'disabled' : ''} class="w-full ${canAfford && levelReqMet ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white' : 'bg-slate-800 text-slate-500 cursor-not-allowed'} font-extrabold py-2.5 rounded-xl text-xs shadow-lg transition">                                 Buy ($${item.cost})
+                            </button>
+                        `}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        function buyShopItem(catKey, itemId) {
+            const list = SHOP_ITEMS[catKey];
+            const item = list.find(i => i.id === itemId);
+            if (!item) return;
+            if (player.cash < item.cost) {
+                alert('Not enough cash!');
+                return;
+            }
+            player.cash -= item.cost;
+            player.inventory[catKey].push(itemId);
+            const singularKey = catKey === 'baits' ? 'bait' : catKey === 'lines' ? 'line' : catKey === 'reels' ? 'reel' : 'rod';
+            player.equipped[singularKey] = itemId;
+            saveGameState();
+            updateHeaderUI();
+            renderShopTab();
+        }
+        function equipItem(singularKey, itemId) {
+            player.equipped[singularKey] = itemId;
+            saveGameState();
+            updateHeaderUI();
+            renderShopTab();
+        }
+        let currentLogFilter = 'ALL';
+        function filterLogbook(cat, event) {
+            currentLogFilter = cat;
+            document.querySelectorAll('.log-filter-btn').forEach(b => {
+                b.className = 'log-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white';
+            });
+            if (event && event.target) {
+                event.target.className = 'log-filter-btn active px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-cyan-400 border border-slate-700';
+            }
+            renderLogbookTab();
+        }
+        function renderLogbookTab() {
+            const grid = document.getElementById('logbookGrid');
+            grid.innerHTML = '';
+            let caughtTotal = 0;
+            Object.keys(SPECIES_DATABASE).forEach(spId => {
+                const sp = SPECIES_DATABASE[spId];
+                if (currentLogFilter !== 'ALL' && sp.category !== currentLogFilter) return;
+                const logData = player.logbook[spId] || { caughtCount: 0, pbWeight: 0, pbLength: 0, highestTier: null };
+                if (logData.caughtCount > 0) caughtTotal += 1;
+                const card = document.createElement('div');
+                const isCaught = logData.caughtCount > 0;
+                card.className = `bg-slate-900 border ${isCaught ? 'border-slate-800' : 'border-slate-800/40 opacity-50'} rounded-2xl p-4 flex flex-col justify-between`;
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[10px] uppercase font-bold text-slate-500">${sp.category}</span>
+                            <div>
+                                ${logData.highestTier === 'UNIQUE' ? '<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-purple-950 text-cyan-300 border border-cyan-400">👑 UNIQUE</span>' : ''}
+                                ${logData.highestTier === 'TROPHY' ? '<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-950 text-amber-300 border border-amber-400">⭐ TROPHY</span>' : ''}
+                                ${logData.highestTier === 'NORMAL' ? '<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-800 text-slate-300 border border-slate-700">NORMAL</span>' : ''}
+                            </div>
+                        </div>
+                        <h3 class="text-sm font-black text-white mb-2">${isCaught ? sp.name : '??? (Uncaught)'}</h3>
+                        ${isCaught ? `
+                            <div class="space-y-1 text-[11px] text-slate-400 font-mono bg-slate-950 p-2.5 rounded-xl border border-slate-800/60">
+                                <div class="flex justify-between"><span>Caught:</span><span class="text-slate-200 font-bold">${logData.caughtCount}</span></div>
+                                <div class="flex justify-between"><span>PB Weight:</span><span class="text-amber-400 font-bold">${logData.pbWeight} lbs</span></div>
+                                <div class="flex justify-between"><span>PB Length:</span><span class="text-cyan-400 font-bold">${logData.pbLength} in</span></div>
+                            </div>
+                        ` : `
+                            <div class="text-xs text-slate-600 italic py-4 text-center">Catch this species to reveal logbook records!</div>
+                        `}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            document.getElementById('logbookCount').innerText = caughtTotal;
+        }
+
+        // ==========================================
+        // INIT ENTRYPOINT
+        // ==========================================
+        window.addEventListener('load', () => {
+            loadGameState();
+            resizeCanvas();
+            initAmbientFish();
+            requestAnimationFrame(renderCanvas);
+        });
+    </script>
+</body>
+</html>
